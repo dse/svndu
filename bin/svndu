@@ -1,0 +1,56 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+
+my $lastparent;
+my %dirusage;
+while (<>) {
+    chomp();
+    if (m{^\s*\d+\s+\S+\s+(\d+)\s+... ..  .... (.*[^/])$}) {
+	my ($usage, $filename) = ($1, $2);
+	my $parent = parent($filename);
+	if (defined $parent) {
+	    $dirusage{$parent} += $usage;
+	    my $ancestor = $parent;
+	    while (1) {
+		$ancestor = parent($ancestor);
+		last if !defined $ancestor || $ancestor eq "";
+		$dirusage{$ancestor} += $usage;
+	    }
+	}
+	if (defined $lastparent && $lastparent ne "" && $parent ne $lastparent) {
+	    my $ancestor = $lastparent;
+	    while (1) {
+		last if !defined $ancestor || $ancestor eq "";
+		if (isancestor($ancestor, $parent)) {
+		    last;
+		}
+		printf("%d\t%s\n", $dirusage{$ancestor}, $ancestor);
+		$ancestor = parent($ancestor);
+	    }
+	}
+	printf("%d\t%s\n", $usage, $filename);
+	$lastparent = $parent;
+    }
+}
+
+if (defined $lastparent) {
+    my $ancestor = $lastparent;
+    while (1) {
+	last if !defined $ancestor || $ancestor eq "";
+	printf("%d\t%s\n", $dirusage{$ancestor}, $ancestor);
+	$ancestor = parent($ancestor);
+    }
+}
+
+sub parent {
+    my ($filename) = @_;
+    return $filename if $filename =~ s{/?[^/]+$}{};
+    return undef;
+}
+
+sub isancestor {
+    my ($ancestor, $of) = @_;
+    return $of =~ m{^\Q$ancestor\E(?:$|/)};
+}
+
